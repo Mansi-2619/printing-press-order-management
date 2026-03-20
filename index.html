@@ -270,6 +270,25 @@
   .qa-btn:hover { border-color: var(--gold); background: var(--cream); }
   .qa-btn.active-step { border-color: var(--gold); background: var(--gold); color: var(--ink); }
 
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    gap: 1rem;
+    color: var(--muted);
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-spinner p { font-size: 0.85rem; color: var(--muted); }
+
   .empty-state {
     text-align: center;
     padding: 4rem 2rem;
@@ -641,49 +660,26 @@
   </div>
 </div>
 
-<!-- Firebase SDKs -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  // 🔧 Replace these values with your own Firebase project config
-  // Get them from: Firebase Console → Project Settings → Your Apps → Web App
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const ordersCol = collection(db, 'orders');
-
-  let orders = [];
+<script>
+  let orders = JSON.parse(localStorage.getItem('demoOrders') || '[]');
   let currentView = 'all';
   let currentTypeFilter = '';
   let editingId = null;
 
-  // Show loading state
-  document.getElementById('orders-list').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Loading orders from cloud...</p></div>';
-
-  // Real-time listener — auto updates whenever data changes in Firebase
-  onSnapshot(query(ordersCol, orderBy('createdAt', 'desc')), (snapshot) => {
-    orders = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+  function save(data) {
+    const idx = orders.findIndex(o => o.id === data.id);
+    if (idx >= 0) orders[idx] = data;
+    else orders.unshift(data);
+    localStorage.setItem('demoOrders', JSON.stringify(orders));
     updateStats();
     renderOrders();
-  });
-
-  async function save(data) {
-    await setDoc(doc(ordersCol, data.id), data);
-    updateStats();
   }
 
-  async function removeOrder(id) {
-    await deleteDoc(doc(ordersCol, id));
+  function removeOrder(id) {
+    orders = orders.filter(o => o.id !== id);
+    localStorage.setItem('demoOrders', JSON.stringify(orders));
+    updateStats();
+    renderOrders();
   }
 
   function genId() {
@@ -732,7 +728,7 @@
     document.getElementById('order-modal').classList.add('open');
   }
 
-  async function saveOrder() {
+  function saveOrder() {
     const name = document.getElementById('f-name').value.trim();
     const type = document.getElementById('f-type').value;
     const orderDate = document.getElementById('f-date').value;
@@ -801,13 +797,13 @@
     }
 
     data.createdAt = editingId ? (orders.find(o=>o.id===editingId)?.createdAt || Date.now()) : Date.now();
-    await save(data);
+    save(data);
     closeModal('order-modal');
   }
 
-  async function deleteOrder(id) {
+  function deleteOrder(id) {
     if (!confirm('Delete this order? This cannot be undone.')) return;
-    await removeOrder(id);
+    removeOrder(id);
     closeModal('detail-modal');
   }
 
@@ -857,9 +853,9 @@
       <div class="bill-section" id="bill-print">
         <div class="bill-header">
           <div style="font-size:1.6rem;margin-bottom:4px">🖨️</div>
-          <h2>Shri Printers</h2>
+          <h2>Demo Printing Press</h2>
           <p style="font-size:0.82rem;color:var(--muted);margin-top:3px">New Market, Mubarakpur</p>
-          <p style="font-size:0.82rem;color:var(--muted);margin-top:2px">Prop. Parveen Gupta &nbsp;|&nbsp; +91 9357272837</p>
+          <p style="font-size:0.82rem;color:var(--muted);margin-top:2px">Prop. Demo Owner &nbsp;|&nbsp; +91 98765 43210</p>
           <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;letter-spacing:0.05em;text-transform:uppercase">Order Receipt / Bill</p>
         </div>
         <div class="bill-row"><span>Bill No.</span><strong>#${o.id}</strong></div>
@@ -991,11 +987,11 @@
     `).join('');
   }
 
-  async function quickUpdate(id, field, value) {
+  function quickUpdate(id, field, value) {
     const o = orders.find(x => x.id === id);
     if (!o) return;
     const updated = { ...o, [field]: value };
-    await save(updated);
+    save(updated);
   }
 
   function updateStats() {
@@ -1021,6 +1017,10 @@
   document.querySelectorAll('.overlay').forEach(ov => {
     ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
   });
+
+  // Init
+  updateStats();
+  renderOrders();
 
 </script>
 </body>
