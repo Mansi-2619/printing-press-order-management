@@ -6,17 +6,6 @@ A lightweight, browser-based order management web app built for a local printing
 
 ---
 
-## 🔗 Live Demo
-🌐 [Click here to view live](#) *(replace with your GitHub Pages link)*
-
----
-
-## 📸 Preview
-
-> *(Add a screenshot here — drag and drop an image in GitHub)*
-
----
-
 ## ✨ Features
 
 | Feature | Details |
